@@ -1,15 +1,19 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from asgiref.sync import sync_to_async
-from dashboard.models import Pedido, Peca, Notificacao
 from django.db import transaction
-from django.utils import timezone
-from django.db.models import Q, Count
 from django.core.serializers.json import DjangoJSONEncoder
 
-STATUS_CONCLUIDO = 0
-STATUS_EM_ANDAMENTO = 1
-STATUS_PENDENTE = 2
+from dashboard.models import (
+    STATUS_CONCLUIDO,
+    STATUS_EM_ANDAMENTO,
+    STATUS_PENDENTE,
+    Pedido,
+    Notificacao,
+    serialize_pedidos,
+)
+from dashboard.views import get_dashboard_summary
+
 
 class DashboardConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -20,29 +24,36 @@ class DashboardConsumer(AsyncWebsocketConsumer):
             self.channel_name
         )
         await self.accept()
-        print("WebSocket conectado!")
 
         await self.send_dashboard_update()
         await self.send_initial_notifications_data()
-        await self.send_historico_update()  # Envia os dados do histórico no connect
+        await self.send_historico_update()
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(
             self.group_name,
             self.channel_name
         )
-        print("WebSocket desconectado!")
 
     async def receive(self, text_data):
-        data = json.loads(text_data)
+        try:
+            data = json.loads(text_data)
+        except json.JSONDecodeError:
+            return
+
         message_type = data.get('type')
-        print(f"Mensagem recebida do cliente: {message_type}")
 
         if message_type == 'mark_notification_read':
             notification_id = data.get('notification_id')
-            await self.mark_notification_as_read(notification_id)
+            result = await self._mark_notification_as_read_in_db(notification_id)
+            if result['status'] == 'success':
+                await self.send(text_data=json.dumps({
+                    'type': 'notification.update',
+                    'unread_count': result['unread_count']
+                }))
         elif message_type == 'mark_all_notifications_read':
-            await self.mark_all_notifications_as_read()
+            await self._mark_all_notifications_as_read_in_db()
+            await self.send_notifications_list()
         elif message_type == 'fetch_notifications':
             await self.send_notifications_list()
         elif message_type == 'fetch_unread_count':
@@ -55,7 +66,7 @@ class DashboardConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             'type': 'dashboard_update',
             'data': event['data']
-        }))
+        }, cls=DjangoJSONEncoder))
 
     async def dashboard_message(self, event):
         await self.send(text_data=json.dumps({
@@ -96,73 +107,27 @@ class DashboardConsumer(AsyncWebsocketConsumer):
         )
 
     async def dashboard_update_trigger(self, event):
-        print("Recebendo dashboard_update_trigger, re-enviando dados do dashboard.")
         await self.send_dashboard_update()
 
     async def historico_update_trigger(self, event):
-        print(f"historico_update_trigger recebido pelo consumer {self.channel_name}")
         await self.send_historico_update()
 
     @sync_to_async
     def get_dashboard_data_from_db(self):
-        em_andamento_count = Pedido.objects.filter(status=STATUS_EM_ANDAMENTO).count()
-        pedidos_concluidos_count = Pedido.objects.filter(status=STATUS_CONCLUIDO).count()
-        total_pedidos_count = em_andamento_count + pedidos_concluidos_count
-
-        pending_order_obj = Pedido.objects.filter(status=STATUS_PENDENTE).first()
-        pending_order_data = None
-        if pending_order_obj:
-            pending_order_data = {
-                'id': pending_order_obj.id,
-                'data': pending_order_obj.data.strftime("%d/%m/%Y %H:%M")
-            }
-
+        summary = get_dashboard_summary()
         return {
-            'em_andamento_count': em_andamento_count,
-            'concluido_count': pedidos_concluidos_count,
-            'total_pedidos_count': total_pedidos_count,
-            'pending_order': pending_order_data,
+            'em_andamento_count': summary['em_andamento_count'],
+            'concluido_count': summary['concluido_count'],
+            'total_pedidos_count': summary['total_pedidos_count'],
+            'pending_order': summary['pending_order'],
+            'estado_robo': summary['estado_robo'],
+            'stock_info': summary['stock_info'],
+            'any_low_stock': summary['any_low_stock'],
         }
 
     @sync_to_async
     def get_pedidos_data(self):
-        pedidos = Pedido.objects.all().order_by('-id')
-        all_pecas = {p.id: p for p in Peca.objects.all()}
-
-        status_map = {
-            0: "Concluído",
-            1: "Em Andamento",
-            2: "Pendente"
-        }
-
-        pedidos_formatados = []
-
-        for pedido in pedidos:
-            pecas_ids, pecas_shapes, pecas_names = [], [], []
-            if isinstance(pedido.pecas, list):
-                for montagem in pedido.pecas:
-                    if isinstance(montagem, list):
-                        for pid in montagem:
-                            peca = all_pecas.get(pid)
-                            if peca:
-                                pecas_ids.append(peca.id)
-                                pecas_shapes.append(peca.tipo)
-                                pecas_names.append(peca.name)
-                            else:
-                                pecas_ids.append(None)
-                                pecas_shapes.append("desconhecida")
-                                pecas_names.append("Peça não encontrada")
-
-            pedidos_formatados.append({
-                'id': pedido.id,
-                'status': status_map.get(pedido.status, "Desconhecido"),
-                'pecas_list_ids': pecas_ids,
-                'pecas_list_shapes': pecas_shapes,
-                'pecas_list_names': pecas_names,
-                'data': pedido.data.strftime("%d/%m/%Y %H:%M") if pedido.data else "Sem data"
-            })
-
-        return pedidos_formatados
+        return serialize_pedidos()
 
     async def send_historico_update(self):
         pedidos_data = await self.get_pedidos_data()
@@ -182,37 +147,18 @@ class DashboardConsumer(AsyncWebsocketConsumer):
         all_notifications = list(Notificacao.objects.all())
         unread_count = sum(1 for n in all_notifications if not n.lida)
         return {
-            'notification_data': {
-                'id': notification.id,
-                'titulo': notification.titulo,
-                'mensagem': notification.mensagem,
-                'data_criacao': notification.data_criacao.strftime("%d/%m/%Y %H:%M"),
-                'lida': notification.lida,
-                'tipo': notification.tipo,
-                'link': notification.link
-            },
+            'notification_data': notification.to_dict(),
             'unread_count': unread_count
         }
 
     @sync_to_async
     def _get_notifications_data_from_db(self):
-        all_notifications_qs = Notificacao.objects.all()
-        notifications_list_raw = list(all_notifications_qs)
+        notifications_list_raw = list(Notificacao.objects.all())
         notifications_list_raw.sort(key=lambda x: x.data_criacao, reverse=True)
         display_notifications = notifications_list_raw[:10]
         unread_count = sum(1 for n in notifications_list_raw if not n.lida)
 
-        notifications_list = [
-            {
-                'id': n.id,
-                'titulo': n.titulo,
-                'mensagem': n.mensagem,
-                'data_criacao': n.data_criacao.strftime("%d/%m/%Y %H:%M"),
-                'lida': n.lida,
-                'tipo': n.tipo,
-                'link': n.link
-            } for n in display_notifications
-        ]
+        notifications_list = [n.to_dict() for n in display_notifications]
         return {'notifications': notifications_list, 'unread_count': unread_count}
 
     @sync_to_async
@@ -232,13 +178,25 @@ class DashboardConsumer(AsyncWebsocketConsumer):
     @sync_to_async
     def _mark_all_notifications_as_read_in_db(self):
         with transaction.atomic():
-            Notificacao.objects.filter(lida=False).update(lida=True)
+            for notif in Notificacao.objects.all():
+                if not notif.lida:
+                    notif.lida = True
+                    notif.save()
         return {'status': 'success', 'unread_count': 0}
 
     @sync_to_async
-    def _process_pending_order_in_db(self, pedido_id):
+    def _process_pending_order_in_db(self, pedido_id=None):
         try:
-            pedido = Pedido.objects.get(id=pedido_id)
+            if pedido_id:
+                pedido = Pedido.objects.get(id=pedido_id)
+            else:
+                pedido = (
+                    Pedido.objects.filter(status=STATUS_PENDENTE).first()
+                    or Pedido.objects.filter(status=STATUS_EM_ANDAMENTO).first()
+                )
+                if not pedido:
+                    return {'status': 'error', 'message': 'Nenhum pedido ativo para processar.'}
+
             if pedido.status == STATUS_PENDENTE:
                 pedido.status = STATUS_EM_ANDAMENTO
                 msg_status = "Em Andamento"
@@ -251,6 +209,7 @@ class DashboardConsumer(AsyncWebsocketConsumer):
             pedido.save()
             return {
                 'status': 'success',
+                'pedido_id': pedido.id,
                 'message': f'Pedido #{pedido.id} atualizado para "{msg_status}".',
                 'pedido_status': msg_status
             }
@@ -297,17 +256,18 @@ class DashboardConsumer(AsyncWebsocketConsumer):
             'unread_count': unread_count
         }))
 
-    async def process_pending_order(self, pedido_id):
+    async def process_pending_order(self, pedido_id=None):
         result = await self._process_pending_order_in_db(pedido_id)
         if result['status'] == 'success':
+            resolved_id = result['pedido_id']
             await self.channel_layer.group_send(
                 self.group_name,
                 {
                     'type': 'notification.create',
-                    'titulo': f"Status do Pedido #{pedido_id} Atualizado!",
-                    'mensagem': f"O pedido #{pedido_id} foi marcado como '{result['pedido_status']}'.",
+                    'titulo': f"Status do Pedido #{resolved_id} Atualizado!",
+                    'mensagem': f"O pedido #{resolved_id} foi marcado como '{result['pedido_status']}'.",
                     'tipo': "pedido_status",
-                    'link': f"/pedidos/historico?search={pedido_id}"
+                    'link': f"/pedidos/historico?search={resolved_id}"
                 }
             )
             await self.send_dashboard_update()
@@ -316,11 +276,10 @@ class DashboardConsumer(AsyncWebsocketConsumer):
                 {
                     'type': 'dashboard.message',
                     'message_type': 'show_toast',
-                    'toast_message': result['message'],
+                    'toast_message': f"🤖 {result['message']}",
                     'toast_type': 'success'
                 }
             )
-            # Envia também o update do histórico para atualizar a lista de pedidos
             await self.channel_layer.group_send(
                 self.group_name,
                 {

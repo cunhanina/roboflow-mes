@@ -1,7 +1,6 @@
-import { showToast, showLoader, hideLoader, setupGlobalTooltips } from './utils.js';
-import { MONTAGE_COLORS, PIECE_ID_TO_DETAILS } from './constants.js'; // Importando as constantes
+import { PIECE_ID_TO_DETAILS } from './constants.js';
+import { renderShape } from './newOrder.js';
 
-// DOM elements
 export let orderDetailsModal;
 export let closeModalButton;
 let modalOrderId;
@@ -9,81 +8,43 @@ let modalOrderStatus;
 let searchInput;
 let orderList;
 let noResultsMessage;
-let historicalOrderItems;
 
-function renderShape(elementId, pieceIdentifier, montageNumber, statusClass = 'border-status-default') {
-    const element = document.getElementById(elementId);
-    if (!element) return;
-
-    element.className = 'w-16 h-16 flex items-center justify-center shadow-md transition-all duration-300';
-    element.innerHTML = '';
-
-    let shapeClass = '';
-    let iconHtml = '';
-    const colorClass = MONTAGE_COLORS[montageNumber] || 'bg-gray-100';
-
-    let shapeType = '';
-    if (typeof pieceIdentifier === 'number' || (typeof pieceIdentifier === 'string' && !isNaN(pieceIdentifier))) {
-        const pieceDetails = PIECE_ID_TO_DETAILS[pieceIdentifier.toString()];
-        shapeType = pieceDetails ? pieceDetails.type : 'unknown';
-    } else {
-        shapeType = pieceIdentifier;
+function getStatusBadgeClasses(status) {
+    const normalized = (status || '').toLowerCase();
+    if (normalized.includes('andamento')) {
+        return 'px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800';
     }
-
-    switch (shapeType) {
-        case 'circulo':
-            shapeClass = 'rounded-full';
-            iconHtml = '<i class="fas fa-circle text-white text-xl"></i>';
-            break;
-        case 'quadrado':
-            shapeClass = 'rounded';
-            iconHtml = '<i class="fas fa-square text-white text-xl"></i>';
-            break;
-        case 'hexagono':
-            shapeClass = 'hexagon-shape';
-            iconHtml = `<svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                            <polygon points="12,2 22,7 22,17 12,22 2,17 2,7"/>
-                        </svg>`;
-            break;
-        default:
-            element.classList.add('bg-gray-100', 'rounded-full', 'border-status-default');
-            return;
+    if (normalized.includes('conclu')) {
+        return 'px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800';
     }
-    element.classList.add(shapeClass, colorClass, statusClass);
-    element.innerHTML = iconHtml;
-}
-
-function getStatusClasses(status) {
-    switch (status) {
-        case "em_andamento": return 'font-semibold text-yellow-600';
-        case "concluido": return 'font-semibold text-green-600';
-        default: return 'font-semibold text-gray-600';
+    if (normalized.includes('pendente')) {
+        return 'px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-800';
     }
+    if (normalized.includes('cancelado')) {
+        return 'px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800';
+    }
+    return 'px-3 py-1 rounded-full text-xs font-bold bg-slate-200 text-slate-700';
 }
 
 export function showOrderDetailsModal(id, status, piecesIdsString) {
-    if (!modalOrderId || !modalOrderStatus || !orderDetailsModal) {
-        console.error("showOrderDetailsModal: Modal elements not initialized.");
-        return;
-    }
+    if (!modalOrderId || !modalOrderStatus || !orderDetailsModal) return;
 
-    modalOrderId.textContent = id;
+    modalOrderId.textContent = `#${id}`;
     modalOrderStatus.textContent = status;
-    modalOrderStatus.className = getStatusClasses(status);
+    modalOrderStatus.className = getStatusBadgeClasses(status);
 
     for (let m = 1; m <= 3; m++) {
         for (let p = 1; p <= 3; p++) {
-            renderShape(`modal_peca_pedido${m}_peca${p}`, '', '');
+            renderShape(`modal_peca_pedido${m}_peca${p}`, '', '', 'border-status-default', 'w-14 h-14');
             const labelElement = document.getElementById(`modal_label_pedido${m}_peca${p}`);
-            if (labelElement) {
-                labelElement.textContent = '';
-            }
+            if (labelElement) labelElement.textContent = '';
         }
     }
 
-    const piecesIds = piecesIdsString.split(',').map(Number);
+    const piecesIds = (piecesIdsString || '').split(',').filter(Boolean).map(Number);
 
     if (piecesIds.length === 9) {
+        const positionLabels = ['Base', 'Meio', 'Topo'];
         piecesIds.forEach((pieceId, i) => {
             const globalPieceIndex = i + 1;
             const montageNumber = Math.ceil(globalPieceIndex / 3);
@@ -92,18 +53,19 @@ export function showOrderDetailsModal(id, status, piecesIdsString) {
             const previewId = `modal_peca_pedido${montageNumber}_peca${pieceInMontageIndex}`;
             const labelId = `modal_label_pedido${montageNumber}_peca${pieceInMontageIndex}`;
             const pieceDetails = PIECE_ID_TO_DETAILS[pieceId.toString()];
+            const posName = positionLabels[pieceInMontageIndex - 1] || `Peça ${pieceInMontageIndex}`;
 
             if (pieceDetails) {
-                renderShape(previewId, pieceId, montageNumber.toString(), 'border-status-selected');
+                renderShape(previewId, pieceId, montageNumber.toString(), 'border-status-selected', 'w-14 h-14');
                 const labelElement = document.getElementById(labelId);
                 if (labelElement) {
-                    labelElement.textContent = `Peça ${pieceInMontageIndex}: ${pieceDetails.name}`;
+                    labelElement.textContent = `${posName}: ${pieceDetails.name}`;
                 }
             } else {
-                renderShape(previewId, 'unknown', montageNumber.toString());
+                renderShape(previewId, 'unknown', montageNumber.toString(), 'border-status-default', 'w-14 h-14');
                 const labelElement = document.getElementById(labelId);
                 if (labelElement) {
-                    labelElement.textContent = `Peça ${pieceInMontageIndex}: Unknown`;
+                    labelElement.textContent = `${posName}: Desconhecida`;
                 }
             }
         });
@@ -120,27 +82,37 @@ export function hideOrderDetailsModal() {
     }
 }
 
-export function initializeHistoricalOrderItems() {
-    if (!historicalOrderItems) {
-        console.error("initializeHistoricalOrderItems: historicalOrderItems not initialized.");
-        return;
-    }
-    historicalOrderItems.forEach(item => {
-        item.addEventListener('click', function() {
+export function bindOrderItemEvents(item) {
+    if (!item || item.dataset.bound === 'true') return;
+    item.dataset.bound = 'true';
+
+    item.addEventListener('click', function () {
+        const { id, status, pecas } = this.dataset;
+        showOrderDetailsModal(id, status, pecas);
+    });
+
+    item.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
             const { id, status, pecas } = this.dataset;
             showOrderDetailsModal(id, status, pecas);
-        });
+        }
     });
 }
 
-function filterOrders() {
+export function initializeHistoricalOrderItems() {
+    document.querySelectorAll('.pedido-item').forEach(bindOrderItemEvents);
+}
+
+export function filterOrders() {
+    if (!searchInput || !noResultsMessage) return;
     const query = searchInput.value.trim().toLowerCase();
     let found = false;
 
-    const currentHistoricalOrderItems = document.querySelectorAll('.pedido-item'); 
+    const currentHistoricalOrderItems = document.querySelectorAll('.pedido-item');
     currentHistoricalOrderItems.forEach(item => {
-        const id = item.dataset.id.toLowerCase();
-        const status = item.dataset.status.toLowerCase();
+        const id = (item.dataset.id || '').toLowerCase();
+        const status = (item.dataset.status || '').toLowerCase();
 
         if (id.includes(query) || status.includes(query)) {
             item.style.display = 'flex';
@@ -150,27 +122,50 @@ function filterOrders() {
         }
     });
 
-    noResultsMessage.style.display = found ? 'none' : 'block';
+    noResultsMessage.classList.toggle('hidden', found);
+}
+
+function updateActiveFilterPills(activeValue) {
+    document.querySelectorAll('.status-filter-pill').forEach(pill => {
+        const isMatch = (pill.dataset.statusFilter || '').toLowerCase() === (activeValue || '').toLowerCase();
+        pill.classList.toggle('bg-purple-600', isMatch);
+        pill.classList.toggle('text-white', isMatch);
+        pill.classList.toggle('bg-slate-100', !isMatch);
+        pill.classList.toggle('text-slate-600', !isMatch);
+    });
 }
 
 export function setupOrderSearch() {
-    if (!searchInput || !orderList || !noResultsMessage) {
-        console.warn("setupOrderSearch: Search elements or order list not found, skipping setup.");
-        return;
-    }
+    if (!searchInput || !orderList || !noResultsMessage) return;
 
-    if (noResultsMessage.parentNode !== orderList.parentNode) {
-        orderList.parentNode.appendChild(noResultsMessage);
-    }
-    noResultsMessage.style.display = 'none';
+    searchInput.addEventListener('input', () => {
+        updateActiveFilterPills(searchInput.value.trim());
+        filterOrders();
+    });
 
-    searchInput.addEventListener('input', filterOrders);
     searchInput.addEventListener('keydown', (event) => {
         if (event.key === 'Enter') {
             event.preventDefault();
             filterOrders();
         }
     });
+
+    document.querySelectorAll('.status-filter-pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+            const filterVal = pill.dataset.statusFilter || '';
+            searchInput.value = filterVal;
+            updateActiveFilterPills(filterVal);
+            filterOrders();
+        });
+    });
+
+    // Apply initial ?search= query parameter if present in URL
+    const urlSearch = new URLSearchParams(window.location.search).get('search');
+    if (urlSearch) {
+        searchInput.value = urlSearch;
+        updateActiveFilterPills(urlSearch);
+        filterOrders();
+    }
 }
 
 export function initializeModals() {
@@ -181,23 +176,20 @@ export function initializeModals() {
     searchInput = document.getElementById('searchInput');
     orderList = document.getElementById('pedidoLista');
     noResultsMessage = document.getElementById('avisoNenhumPedido');
-    historicalOrderItems = document.querySelectorAll('.pedido-item');
 
-    if (closeModalButton) { 
-        closeModalButton.addEventListener('click', hideOrderDetailsModal);
-    } else {
-        console.warn("initializeModals: Close modal button not found.");
-    }
-    
-    if (orderDetailsModal) {
-        orderDetailsModal.addEventListener('click', (event) => {
-            if (event.target === orderDetailsModal) {
-                hideOrderDetailsModal();
-            }
-        });
-    } else {
-        console.warn("initializeModals: Order details modal not found.");
-    }
+    closeModalButton?.addEventListener('click', hideOrderDetailsModal);
+
+    orderDetailsModal?.addEventListener('click', (event) => {
+        if (event.target === orderDetailsModal) {
+            hideOrderDetailsModal();
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && orderDetailsModal && !orderDetailsModal.classList.contains('hidden')) {
+            hideOrderDetailsModal();
+        }
+    });
 
     setupOrderSearch();
     initializeHistoricalOrderItems();

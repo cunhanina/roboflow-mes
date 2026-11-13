@@ -6,11 +6,10 @@ export const MONTAGE_COLORS = {
 
 export const PIECE_ID_TO_DETAILS = {
     '1': { type: 'circulo', name: 'Círculo' },
-    '3': { type: 'hexagono', name: 'Hexágono' },
-    '2': { type: 'quadrado', name: 'Quadrado' }
+    '2': { type: 'quadrado', name: 'Quadrado' },
+    '3': { type: 'hexagono', name: 'Hexágono' }
 };
 
-// New API Endpoints
 export const API_ENDPOINTS = {
     NOTIFICATIONS: '/api/notificacoes/',
     MARK_NOTIFICATION_READ: (id) => `/api/notificacoes/lidas/${id}/`,

@@ -1,28 +1,24 @@
-/* Custom Tailwind colors or theme adjustments (if any, keep here) */
 :root {
-    /* Exemplo de variáveis de cor (se você as definir aqui para reutilização) */
-    --color-primary: #8B5CF6; /* Roxo */
-    --color-secondary: #6B7280; /* Cinza */
-    --color-success: #10B981; /* Verde */
-    --color-error: #EF4444; /* Vermelho */
-    --color-info: #3B82F6; /* Azul */
-    --color-warning: #F59E0B; /* Amarelo */
+    --color-primary: #8B5CF6;
+    --color-secondary: #6B7280;
+    --color-success: #10B981;
+    --color-error: #EF4444;
+    --color-info: #3B82F6;
+    --color-warning: #F59E0B;
 
-    --color-border-status-selected: var(--color-primary); /* Exemplo: borda roxa para selecionado */
-    --color-border-status-default: #D1D5DB; /* Exemplo: borda cinza claro para padrão */
+    --color-border-status-selected: var(--color-primary);
+    --color-border-status-default: #CBD5E1;
 }
 
-/* Títulos e rótulos de cards do dashboard, se forem customizados além do Tailwind */
 .dashboard-title {
     letter-spacing: -0.05em;
 }
 
 .dashboard-card-label {
     text-transform: uppercase;
-    font-size: 0.875rem; /* text-sm */
+    font-size: 0.875rem;
 }
 
-/* Cores de status de borda */
 .border-status-selected {
     border-width: 2px;
     border-style: solid;
@@ -31,7 +27,7 @@
 
 .border-status-default {
     border-width: 1px;
-    border-style: solid;
+    border-style: dashed;
     border-color: var(--color-border-status-default);
 }
 
@@ -43,7 +39,6 @@
 /* Tooltip Base Styling */
 [data-tooltip] {
     position: relative;
-    cursor: pointer;
 }
 
 /* Global Body/HTML Overflow Handling */
@@ -51,19 +46,19 @@ html, body {
     overflow-x: hidden;
 }
 
-/* Animações e Transições Comuns */
+/* Common Transitions */
 .hover-scale-105:hover {
-    transform: scale(1.05);
+    transform: scale(1.03);
 }
 
 .active-scale-95:active {
-    transform: scale(0.95);
+    transform: scale(0.96);
 }
 
 /* Toast Notifications */
 #toast-container {
-    position: fixed; /* Adicionado para garantir que o contêiner esteja fixo na tela */
-    top: 1rem;
+    position: fixed;
+    top: 4.75rem;
     right: 1rem;
     z-index: 1001;
     display: flex;
@@ -71,26 +66,25 @@ html, body {
     gap: 0.5rem;
 }
 
-/* Estilos base para cada notificação Toast individual */
 .toast {
     opacity: 0 !important;
     transform: translateX(100%) !important;
-    padding: 0.75rem 1.25rem;
-    border-radius: 0.5rem;
+    padding: 0.85rem 1.25rem;
+    border-radius: 0.75rem;
     color: white;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    transition: opacity 0.3s ease-out, transform 0.3s ease-out;
-    min-width: 200px;
-    max-width: 300px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.15);
+    transition: opacity 0.25s ease-out, transform 0.25s ease-out;
+    min-width: 240px;
+    max-width: 360px;
 }
 
-/* ESTE É O BLOCO CHAVE QUE FALTAVA OU ESTAVA INCORRETO */
 .toast.show {
     opacity: 1 !important;
     transform: translateX(0) !important;
 }
 
-/* Cores específicas para cada tipo de toast */
 .toast.success {
     background-color: var(--color-success);
 }
@@ -109,36 +103,33 @@ html, body {
 
 /* Global Loader */
 #global-loader {
-    position: fixed; /* Garante que o loader cubra a tela */
+    position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(229, 231, 235, 0.75);
+    background-color: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(2px);
     z-index: 9999;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-#global-loader > div {
-    border-top-color: var(--color-primary);
-    border-bottom-color: var(--color-primary);
-}
-
-/* Estilos para o modal */
+/* Modal */
 .modal-overlay {
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(2px);
 }
 
 .modal-content {
-    animation: fadeInScale 0.3s ease-out forwards;
+    animation: fadeInScale 0.2s ease-out forwards;
 }
 
 @keyframes fadeInScale {
     from {
         opacity: 0;
-        transform: scale(0.9);
+        transform: scale(0.95);
     }
     to {
         opacity: 1;

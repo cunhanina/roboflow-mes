@@ -2,7 +2,6 @@
 
 from django.db import migrations, models
 import django.utils.timezone
-import djongo.models.fields
 
 
 class Migration(migrations.Migration):
@@ -55,7 +54,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('data', models.DateTimeField(default=django.utils.timezone.now, verbose_name='Data e Hora do Pedido')),
-                ('pecas', djongo.models.fields.JSONField(verbose_name='IDs das Peças nas Montagens')),
+                ('pecas', models.JSONField(verbose_name='IDs das Peças nas Montagens')),
                 ('status', models.IntegerField(choices=[(2, 'Pendente'), (1, 'Em Andamento'), (0, 'Concluído')], default=2, verbose_name='Status do Pedido')),
             ],
             options={

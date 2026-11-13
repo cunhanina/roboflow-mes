@@ -4,99 +4,148 @@
 {% block title %}Histórico de Pedidos{% endblock %}
 
 {% block content %}
-<main class="flex-grow flex flex-col items-center px-4 py-6 md:px-8 lg:px-12 xl:px-16 overflow-hidden" role="main" aria-label="Seção principal do histórico de pedidos">
-    <h1 class="text-4xl font-extrabold mb-8 text-gray-800 text-center tracking-tight w-full">Histórico de Pedidos</h1>
+<main class="flex-grow flex flex-col items-center px-4 sm:px-6 lg:px-8 py-6 md:py-8 max-w-7xl mx-auto w-full" role="main" aria-label="Seção principal do histórico de pedidos">
+    <div class="w-full mb-6">
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Histórico &amp; Métricas de Produção</h1>
+        <p class="text-sm text-slate-500 mt-1">Consulte ordens registradas, inspecione a configuração das peças e acompanhe a vazão da célula</p>
+    </div>
 
-    <div class="flex flex-col lg:flex-row gap-6 lg:gap-8 w-full flex-grow">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full flex-grow">
 
-        <div class="flex-1 min-w-[280px] md:min-w-[320px] lg:min-w-[400px] bg-white p-4 sm:p-6 rounded-xl shadow-lg border border-gray-200 flex flex-col flex-grow flex-shrink-0" aria-labelledby="lista-pedidos-titulo">
-            <h2 id="lista-pedidos-titulo" class="text-xl sm:text-2xl font-bold mb-4 text-gray-800 text-center lg:text-left">Lista de Pedidos</h2>
-            
-            <form id="searchForm" onsubmit="return false;" class="mb-5 w-full" role="search" aria-label="Buscar pedidos no histórico" data-tooltip="Busque pedidos por ID ou status">
-                <input id="searchInput" type="text" placeholder="Buscar por ID ou status..."
-                    class="w-full p-2 sm:p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 text-base sm:text-lg active-scale-95"
-                    aria-label="Campo de busca de pedidos por ID ou status" />
+        <!-- Order List Column (5 cols) -->
+        <div class="lg:col-span-5 bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col" aria-labelledby="lista-pedidos-titulo">
+            <div class="flex items-center justify-between mb-4">
+                <h2 id="lista-pedidos-titulo" class="text-lg sm:text-xl font-bold text-slate-800">Ordens de Montagem</h2>
+                <span class="text-xs font-semibold text-slate-400">{{ pedidos|length }} registros</span>
+            </div>
+
+            <form id="searchForm" onsubmit="return false;" class="mb-3 w-full" role="search" aria-label="Buscar pedidos no histórico">
+                <div class="relative">
+                    <i class="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                    <input id="searchInput"
+                           type="text"
+                           placeholder="Buscar por ID ou status..."
+                           class="w-full pl-9 pr-4 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+                           aria-label="Campo de busca de pedidos por ID ou status" />
+                </div>
             </form>
 
-            {% if pedidos %}
-            <div class="overflow-y-auto border border-gray-200 rounded-lg p-3 w-full flex-grow max-h-[60vh]" aria-live="polite">
-                <ul id="pedidoLista" class="flex flex-col gap-3 w-full" aria-label="Lista de todos os pedidos históricos">
+            <!-- Quick Status Filter Pills -->
+            <div class="flex flex-wrap gap-1.5 mb-4" role="group" aria-label="Filtros rápidos por status">
+                <button type="button" data-status-filter="" class="status-filter-pill px-2.5 py-1 rounded-lg text-xs font-semibold bg-purple-600 text-white transition-colors">Todos</button>
+                <button type="button" data-status-filter="Pendente" class="status-filter-pill px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">Pendentes</button>
+                <button type="button" data-status-filter="Em Andamento" class="status-filter-pill px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">Em Andamento</button>
+                <button type="button" data-status-filter="Concluído" class="status-filter-pill px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">Concluídos</button>
+            </div>
+
+            <div class="overflow-y-auto border border-slate-200 rounded-xl p-2.5 w-full flex-grow max-h-[55vh]" aria-live="polite">
+                <ul id="pedidoLista" class="flex flex-col gap-2.5 w-full" aria-label="Lista de todos os pedidos históricos">
                     {% for pedido in pedidos %}
-                        <li class="pedido-item w-full flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-gray-50 rounded-lg shadow-sm cursor-pointer hover:bg-gray-100 transition-colors duration-200 hover-scale-105 active-scale-95"
+                        <li class="pedido-item w-full flex items-center justify-between p-3.5 bg-slate-50 hover:bg-purple-50/50 border border-slate-200/80 hover:border-purple-300 rounded-xl cursor-pointer transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-purple-500"
                             data-id="{{ pedido.id }}"
                             data-status="{{ pedido.status }}"
                             data-pecas="{{ pedido.pecas_list_ids|join:',' }}"
                             aria-label="Detalhes do pedido {{ pedido.id }}, status {{ pedido.status }}"
                             role="listitem"
                             tabindex="0"
-                            data-tooltip="Clique para ver os detalhes do pedido {{ pedido.id }}">
+                            data-tooltip="Clique ou pressione Enter para inspecionar as 3 montagens do pedido #{{ pedido.id }}">
 
-                            <div class="mb-3 sm:mb-0 sm:max-w-xs">
-                                <p class="text-xs sm:text-sm text-gray-600">Pedido ID: <span class="font-semibold text-gray-800">{{ pedido.id }}</span></p>
-                                <p class="text-xs sm:text-sm text-gray-600">Data: <span class="font-semibold text-gray-800">{{ pedido.data }}</span></p>
-                                <p class="text-xs sm:text-sm text-gray-600">
-                                    Status:
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm font-bold text-slate-900">Pedido #{{ pedido.id }}</span>
                                     {% if pedido.status == "Em Andamento" %}
-                                        <span class="text-yellow-600 font-semibold">Em andamento</span>
+                                        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">Em Andamento</span>
                                     {% elif pedido.status == "Concluído" %}
-                                        <span class="text-green-600 font-semibold">Concluído</span>
+                                        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">Concluído</span>
+                                    {% elif pedido.status == "Pendente" %}
+                                        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">Pendente</span>
                                     {% elif pedido.status == "Cancelado" %}
-                                        <span class="text-red-600 font-semibold">Cancelado</span>
+                                        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800">Cancelado</span>
                                     {% else %}
-                                        <span class="text-gray-600">{{ pedido.status|capfirst }}</span>
+                                        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-200 text-slate-700">{{ pedido.status|capfirst }}</span>
                                     {% endif %}
+                                </div>
+                                <p class="text-xs text-slate-500 mt-1">
+                                    <i class="far fa-clock mr-1"></i> {{ pedido.data }}
                                 </p>
                             </div>
+
+                            <span class="text-slate-400 text-sm">
+                                <i class="fas fa-chevron-right"></i>
+                            </span>
                         </li>
                     {% endfor %}
                 </ul>
-                <p id="avisoNenhumPedido" class="text-center text-red-600 mt-4 font-semibold hidden" aria-live="assertive">Pedido não encontrado.</p>
+                <p id="avisoNenhumPedido" class="text-center text-slate-500 py-8 text-sm font-medium {% if pedidos %}hidden{% endif %}" aria-live="assertive">
+                    Nenhum pedido encontrado para o filtro selecionado.
+                </p>
             </div>
-            {% else %}
-                <p class="text-center text-gray-500 mt-8 flex-grow" aria-live="polite">Nenhum pedido encontrado.</p>
-            {% endif %}
         </div>
 
-        <div class="flex-1 min-w-[280px] md:min-w-[320px] bg-white p-4 sm:p-6 rounded-xl shadow-lg border border-gray-200 flex flex-col items-center flex-grow flex-shrink-0" aria-labelledby="grafico-volume-titulo">
-            <h2 id="grafico-volume-titulo" class="text-xl sm:text-2xl font-bold mb-4 text-gray-800 text-center lg:text-left">Volume de Pedidos (Últimos Dias)</h2>
-            
-            <div class="relative w-full flex-grow min-h-[250px] lg:min-h-[350px]">
-                <canvas id="ordersChart" role="img" aria-label="Gráfico de linha mostrando o número de pedidos criados e concluídos ao longo do tempo"></canvas>
+        <!-- Analytics Chart Column (7 cols) -->
+        <div class="lg:col-span-7 bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between" aria-labelledby="grafico-volume-titulo">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                <div>
+                    <h2 id="grafico-volume-titulo" class="text-lg sm:text-xl font-bold text-slate-800">Volume de Produção</h2>
+                    <p class="text-xs text-slate-500">Comparativo entre ordens criadas e concluídas por período</p>
+                </div>
+
+                <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl" role="group" aria-label="Filtro de período do gráfico">
+                    <button id="filter7Days" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-purple-600 text-white transition-all" data-tooltip="Mostrar dados dos últimos 7 dias">7 Dias</button>
+                    <button id="filter30Days" class="px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition-all" data-tooltip="Mostrar dados dos últimos 30 dias">30 Dias</button>
+                    <button id="filterThisMonth" class="px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition-all" data-tooltip="Mostrar dados do mês atual">Mês Atual</button>
+                </div>
             </div>
-            
-            <div class="flex flex-wrap justify-center gap-3 mt-5 w-full" role="group" aria-label="Filtro de período do gráfico">
-                <button id="filter7Days" class="px-3 py-2 text-sm sm:px-4 sm:py-2 rounded-lg bg-purple-500 text-white hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500 active-scale-95 transition-all flex-1 basis-auto" data-tooltip="Mostrar dados dos últimos 7 dias">7 Dias</button>
-                <button id="filter30Days" class="px-3 py-2 text-sm sm:px-4 sm:py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 active-scale-95 transition-all flex-1 basis-auto" data-tooltip="Mostrar dados dos últimos 30 dias">30 Dias</button>
-                <button id="filterThisMonth" class="px-3 py-2 text-sm sm:px-4 sm:py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 active-scale-95 transition-all flex-1 basis-auto" data-tooltip="Mostrar dados do mês atual">Mês Atual</button>
+
+            <div class="relative w-full flex-grow min-h-[280px] lg:min-h-[380px]">
+                <canvas id="ordersChart" role="img" aria-label="Gráfico de linha mostrando o número de pedidos criados e concluídos ao longo do tempo"></canvas>
             </div>
         </div>
     </div>
 </main>
 
-{# Pop-up (Modal) para Detalhes do Pedido #}
-<div id="pedido-modal" class="fixed inset-0 hidden items-center justify-center modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title-pedido-modal">
-    <div class="bg-white p-4 sm:p-8 rounded-xl shadow-2xl border border-gray-300 w-11/12 max-w-lg md:max-w-xl lg:max-w-4xl modal-content relative max-h-[90vh] overflow-y-auto">
-        <button id="close-modal-btn" aria-label="Fechar detalhes do pedido" class="absolute top-3 right-3 sm:top-4 sm:right-4 text-gray-500 hover:text-gray-800 text-2xl focus:outline-none focus:ring-2 focus:ring-purple-500 rounded-full active-scale-95" data-tooltip="Fechar janela de detalhes">
-            <i class="fas fa-times-circle"></i>
+<!-- Order Details Modal -->
+<div id="pedido-modal" class="fixed inset-0 hidden items-center justify-center modal-overlay z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="modal-title-pedido-modal">
+    <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl modal-content relative max-h-[90vh] overflow-y-auto">
+        <button id="close-modal-btn"
+                aria-label="Fechar detalhes do pedido"
+                class="absolute top-4 right-4 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center text-lg focus:outline-none focus:ring-2 focus:ring-purple-500 active-scale-95"
+                data-tooltip="Fechar janela (Esc)">
+            <i class="fas fa-times"></i>
         </button>
-        <h2 id="modal-title-pedido-modal" class="text-2xl sm:text-3xl font-extrabold text-center mb-4 sm:mb-6 text-gray-800">Detalhes do Pedido <span id="modal-pedido-id" class="text-purple-700"></span></h2>
-        <p class="text-sm sm:text-base text-center text-gray-600 mb-6 sm:mb-8" aria-live="polite">Status: <span id="modal-pedido-status" class="font-semibold"></span></p>
 
-        <div id="modal-montagens-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
+        <div class="text-center mb-6">
+            <h2 id="modal-title-pedido-modal" class="text-2xl sm:text-3xl font-extrabold text-slate-900">
+                Pedido <span id="modal-pedido-id" class="text-purple-600"></span>
+            </h2>
+            <p class="text-sm text-slate-600 mt-2 flex items-center justify-center gap-2" aria-live="polite">
+                <span>Status:</span>
+                <span id="modal-pedido-status" class="font-semibold"></span>
+            </p>
+        </div>
+
+        <div id="modal-montagens-container" class="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
             {% for i in "123" %}
-                <div class="bloco-montagem w-full p-4 bg-gray-50 rounded-lg shadow-inner border border-gray-200">
-                    <h3 id="montagem-titulo-{{ forloop.counter }}" class="text-lg sm:text-xl font-semibold mb-3 text-center text-gray-700">Montagem {{ forloop.counter }}</h3>
-                    <div class="mt-4" role="list">
-                        <h4 class="text-md sm:text-lg font-semibold mb-2 text-center text-gray-700">Visualização das Peças</h4>
-                        <div class="flex flex-col gap-2 items-center">
-                            <p id="modal_label_pedido{{ forloop.counter }}_peca1" class="text-xs sm:text-sm text-gray-600 mb-1" aria-live="polite"></p>
-                            <div id="modal_peca_pedido{{ forloop.counter }}_peca1" class="w-14 h-14 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center shadow-inner transition-all duration-300 border-status-default" data-tooltip="Visualização da peça 1 desta montagem" role="img" aria-label="Peça 1 da montagem {{ forloop.counter }}"></div>
-                            
-                            <p id="modal_label_pedido{{ forloop.counter }}_peca2" class="text-xs sm:text-sm text-gray-600 mb-1" aria-live="polite"></p>
-                            <div id="modal_peca_pedido{{ forloop.counter }}_peca2" class="w-14 h-14 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center shadow-inner transition-all duration-300 border-status-default" data-tooltip="Visualização da peça 2 desta montagem" role="img" aria-label="Peça 2 da montagem {{ forloop.counter }}"></div>
-                            
-                            <p id="modal_label_pedido{{ forloop.counter }}_peca3" class="text-xs sm:text-sm text-gray-600 mb-1" aria-live="polite"></p>
-                            <div id="modal_peca_pedido{{ forloop.counter }}_peca3" class="w-14 h-14 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center shadow-inner transition-all duration-300 border-status-default" data-tooltip="Visualização da peça 3 desta montagem" role="img" aria-label="Peça 3 da montagem {{ forloop.counter }}"></div>
+                <div class="bloco-montagem w-full p-4 bg-slate-50 rounded-xl border border-slate-200">
+                    <h3 id="montagem-titulo-{{ forloop.counter }}" class="text-base font-bold mb-3 text-center text-slate-800 pb-2 border-b border-slate-200">
+                        Montagem {{ forloop.counter }}
+                    </h3>
+                    <div class="mt-3" role="list">
+                        <div class="flex flex-col gap-3 items-center">
+                            <div class="flex flex-col items-center">
+                                <p id="modal_label_pedido{{ forloop.counter }}_peca1" class="text-xs font-medium text-slate-600 mb-1" aria-live="polite"></p>
+                                <div id="modal_peca_pedido{{ forloop.counter }}_peca1" class="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center shadow-inner transition-all duration-300 border-status-default" role="img" aria-label="Peça 1 da montagem {{ forloop.counter }}"></div>
+                            </div>
+
+                            <div class="flex flex-col items-center">
+                                <p id="modal_label_pedido{{ forloop.counter }}_peca2" class="text-xs font-medium text-slate-600 mb-1" aria-live="polite"></p>
+                                <div id="modal_peca_pedido{{ forloop.counter }}_peca2" class="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center shadow-inner transition-all duration-300 border-status-default" role="img" aria-label="Peça 2 da montagem {{ forloop.counter }}"></div>
+                            </div>
+
+                            <div class="flex flex-col items-center">
+                                <p id="modal_label_pedido{{ forloop.counter }}_peca3" class="text-xs font-medium text-slate-600 mb-1" aria-live="polite"></p>
+                                <div id="modal_peca_pedido{{ forloop.counter }}_peca3" class="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center shadow-inner transition-all duration-300 border-status-default" role="img" aria-label="Peça 3 da montagem {{ forloop.counter }}"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -104,4 +153,4 @@
         </div>
     </div>
 </div>
-{% endblock %} {# Fim do bloco de conteúdo #}
+{% endblock %}

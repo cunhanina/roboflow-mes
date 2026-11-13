@@ -1,7 +1,7 @@
 const toastContainer = document.getElementById('toast-container');
 const globalTooltip = document.getElementById('global-tooltip');
 
-export function showToast(message, type, duration = 3000) {
+export function showToast(message, type = 'info', duration = 3500) {
     if (!toastContainer) {
         console.warn("Toast container not found!");
         return;
@@ -24,12 +24,14 @@ export function showToast(message, type, duration = 3000) {
 }
 
 export function showLoader() {
+    if (document.getElementById('global-loader')) return;
     const loader = document.createElement('div');
     loader.id = 'global-loader';
-    loader.className = 'fixed inset-0 flex items-center justify-center bg-gray-200 bg-opacity-75 z-[9999]';
     loader.innerHTML = `
-        <div class="animate-spin rounded-full h-20 w-20 border-t-4 border-b-4 border-purple-500"></div>
-        <p class="ml-4 text-gray-700 text-lg">Loading...</p>
+        <div class="bg-white px-6 py-4 rounded-2xl shadow-xl flex items-center gap-4 border border-slate-200">
+            <div class="animate-spin rounded-full h-8 w-8 border-t-4 border-b-4 border-purple-600"></div>
+            <p class="text-slate-700 font-semibold text-sm">Carregando...</p>
+        </div>
     `;
     document.body.appendChild(loader);
 }
@@ -68,36 +70,39 @@ function updateTooltipPosition(targetElement) {
 
     globalTooltip.classList.remove('hidden');
 
-    let tooltipLeft = rect.left + window.scrollX + (rect.width / 2);
+    let tooltipLeft = rect.left + (rect.width / 2);
     if (tooltipLeft + globalTooltip.offsetWidth / 2 > window.innerWidth) {
         tooltipLeft = window.innerWidth - (globalTooltip.offsetWidth / 2) - 10;
     }
     if (tooltipLeft - globalTooltip.offsetWidth / 2 < 0) {
         tooltipLeft = (globalTooltip.offsetWidth / 2) + 10;
     }
-    
+
     globalTooltip.style.left = `${tooltipLeft}px`;
     globalTooltip.style.transform = `translateX(-50%)`;
 
-    let tooltipTop = rect.bottom + window.scrollY + 10;
-    if (tooltipTop + globalTooltip.offsetHeight > window.innerHeight + window.scrollY) {
-        tooltipTop = rect.top + window.scrollY - globalTooltip.offsetHeight - 10;
+    let tooltipTop = rect.bottom + 8;
+    if (tooltipTop + globalTooltip.offsetHeight > window.innerHeight) {
+        tooltipTop = rect.top - globalTooltip.offsetHeight - 8;
     }
-    
+
     globalTooltip.style.top = `${tooltipTop}px`;
     globalTooltip.setAttribute('aria-hidden', 'false');
 }
 
 export function setupGlobalTooltips() {
     document.querySelectorAll('[data-tooltip]').forEach(element => {
-        element.addEventListener('mouseenter', (e) => updateTooltipPosition(e.target));
+        if (element.dataset.tooltipBound === 'true') return;
+        element.dataset.tooltipBound = 'true';
+
+        element.addEventListener('mouseenter', (e) => updateTooltipPosition(e.currentTarget));
         element.addEventListener('mouseleave', () => {
             if (globalTooltip) {
                 globalTooltip.classList.add('hidden');
                 globalTooltip.setAttribute('aria-hidden', 'true');
             }
         });
-        element.addEventListener('focus', (e) => updateTooltipPosition(e.target));
+        element.addEventListener('focus', (e) => updateTooltipPosition(e.currentTarget));
         element.addEventListener('blur', () => {
             if (globalTooltip) {
                 globalTooltip.classList.add('hidden');

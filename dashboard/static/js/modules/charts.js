@@ -1,11 +1,10 @@
 import { showToast, showLoader, hideLoader } from './utils.js';
 
-// DOM Elements
 export const ordersChartCanvas = document.getElementById('ordersChart');
 export const filter7DaysBtn = document.getElementById('filter7Days');
 export const filter30DaysBtn = document.getElementById('filter30Days');
 export const filterThisMonthBtn = document.getElementById('filterThisMonth');
-let ordersChart; // Chart.js 
+let ordersChart;
 
 async function fetchOrdersChartData(period) {
     showLoader();
@@ -16,8 +15,8 @@ async function fetchOrdersChartData(period) {
         }
         return await response.json();
     } catch (error) {
-        console.error("Error fetching chart data:", error);
-        showToast("Failed to load chart data.", "error");
+        console.error("Erro ao carregar dados do gráfico:", error);
+        showToast("Não foi possível carregar os dados do gráfico.", "error");
         return { labels: [], created_counts: [], completed_counts: [] };
     } finally {
         hideLoader();
@@ -41,18 +40,22 @@ function renderOrdersChart(chartData) {
                 {
                     label: 'Pedidos Criados',
                     data: chartData.created_counts,
-                    borderColor: 'rgb(75, 192, 192)',
-                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                    tension: 0.1,
-                    fill: false
+                    borderColor: 'rgb(59, 130, 246)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                    tension: 0.3,
+                    fill: true,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
                 },
                 {
                     label: 'Pedidos Concluídos',
                     data: chartData.completed_counts,
-                    borderColor: 'rgb(153, 102, 255)',
-                    backgroundColor: 'rgba(153, 102, 255, 0.2)',
-                    tension: 0.1,
-                    fill: false
+                    borderColor: 'rgb(16, 185, 129)',
+                    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+                    tension: 0.3,
+                    fill: true,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
                 }
             ]
         },
@@ -73,6 +76,9 @@ function renderOrdersChart(chartData) {
                     title: {
                         display: true,
                         text: 'Data'
+                    },
+                    grid: {
+                        display: false
                     }
                 },
                 y: {
@@ -101,10 +107,9 @@ function updateFilterButtonStyles(activePeriod) {
         if (!btn) return;
 
         const isActive = period === activePeriod;
-        btn.classList.toggle('bg-purple-500', isActive);
+        btn.classList.toggle('bg-purple-600', isActive);
         btn.classList.toggle('text-white', isActive);
-        btn.classList.toggle('bg-gray-200', !isActive);
-        btn.classList.toggle('text-gray-700', !isActive);
+        btn.classList.toggle('text-slate-600', !isActive);
     });
 }
 
